@@ -9,10 +9,11 @@ struct Render_State {
 	BITMAPINFO bitmap_info;
 };
 
-Render_State render_state; 
+global_variable Render_State render_state; 
 
-
+#include "platform_common.cpp"
 #include "renderer.cpp"
+#include "game.cpp"
 
 
 LRESULT CALLBACK window_callback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -65,18 +66,47 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	//create window
 	HWND window = CreateWindowA(window_class.lpszClassName, "My First Game", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, 0, 0, hInstance, 0);
 	HDC hdc = GetDC(window);
+
+
+	Input input = {};
+
 	while (running) {
 		// input
 		MSG message;
+
+		for (int i = 0; i < BUTTON_COUNT; i++) {
+			input.buttons[i].changed = false;
+		}
 		while (PeekMessage(&message, window, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&message);
-			DispatchMessage(&message);
+
+			switch (message.message) {
+			case WM_KEYUP:
+			case WM_KEYDOWN: {
+				u32 vk_code = (u32)message.wParam;
+				bool is_down = ((message.lParam & (1 << 31)) == 0);
+#define process_button(b,vk)\
+case vk: {\
+input.buttons[b].is_down = is_down;\
+input.buttons[b].changed = true;\
+} break;\
+
+				switch (vk_code) {
+					process_button(BUTTON_UP, VK_UP);
+					process_button(BUTTON_DOWN, VK_DOWN);
+					process_button(BUTTON_LEFT, VK_LEFT);
+					process_button(BUTTON_RIGHT, VK_RIGHT);
+				}
+			}break;
+
+			default: {
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+
+				}
+			}
 		}
 		//simulate
-		clear_screen(800080);
-		draw_rect(0, 0, 1, 1, 0x880999);
-		draw_rect(30, 30, 5, 5, 0x880999);
-		draw_rect(-20, 20, 8, 3, 0x880999);
+		simulate_game(&input);
 
 		//render
 		StretchDIBits(hdc, 0, 0, render_state.width, render_state.height, 0, 0, render_state.width, render_state.height, render_state.memory, &render_state.bitmap_info, DIB_RGB_COLORS, SRCCOPY);
