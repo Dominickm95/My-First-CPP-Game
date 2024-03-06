@@ -70,6 +70,17 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 	Input input = {};
 
+	float deltaTime = 0.016666f;
+	LARGE_INTEGER frameBeginTime;
+	QueryPerformanceCounter(&frameBeginTime);
+	
+	float performanceFrequency;
+	{
+		LARGE_INTEGER perf;
+		QueryPerformanceFrequency(&perf);
+		performanceFrequency = (float)perf.QuadPart;
+	}
+
 	while (running) {
 		// input
 		MSG message;
@@ -106,11 +117,15 @@ input.buttons[b].changed = true;\
 			}
 		}
 		//simulate
-		simulate_game(&input);
+		simulate_game(&input, deltaTime);
 
 		//render
 		StretchDIBits(hdc, 0, 0, render_state.width, render_state.height, 0, 0, render_state.width, render_state.height, render_state.memory, &render_state.bitmap_info, DIB_RGB_COLORS, SRCCOPY);
 
+		LARGE_INTEGER frameEndTime;
+		QueryPerformanceCounter(&frameEndTime);
+		deltaTime = (float)(frameEndTime.QuadPart - frameBeginTime.QuadPart) / performanceFrequency;
+		frameBeginTime = frameEndTime;
 	}
 
 
